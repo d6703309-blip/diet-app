@@ -1,10 +1,12 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// This line fixes the "process is not defined" error during Vercel build
+declare const process: any;
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Fix: Property 'cwd' does not exist on type 'Process'
-  const env = loadEnv(mode, (process as any).cwd(), '');
+  const env = loadEnv(mode, process.cwd(), '');
   return {
     plugins: [react()],
     define: {
