@@ -5,8 +5,6 @@ import { AnalysisResult, DietMode } from "./types";
 // This tells TypeScript to ignore the process variable check
 declare const process: any;
 
-const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const analysisSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -58,6 +56,14 @@ export const analyzeFoodImage = async (
   base64Image: string,
   mode: DietMode
 ): Promise<AnalysisResult> => {
+  // Check API Key explicitly
+  const apiKey = process.env.API_KEY;
+  if (!apiKey || apiKey.length < 10) {
+     throw new Error("API Key 未配置或无效。请在 Vercel 环境变量中设置 API_KEY。");
+  }
+
+  const genAI = new GoogleGenAI({ apiKey });
+
   try {
     const prompt = `
     Analyze the food image provided. 
@@ -85,11 +91,22 @@ export const analyzeFoodImage = async (
     });
 
     const text = response.text;
-    if (!text) throw new Error("No response from AI");
+    if (!text) throw new Error("AI 未返回数据");
     
     return JSON.parse(text) as AnalysisResult;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    throw error;
+    
+    // Convert confusing error messages to friendly Chinese
+    let msg = error.message || "未知错误";
+    if (msg.includes("403") || msg.includes("API key not valid")) {
+      msg = "API Key 无效或过期 (403)，请检查 Vercel 设置。";
+    } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+      msg = "网络连接失败。请确保您已开启 VPN 全局模式（可访问 Google）。";
+    } else if (msg.includes("503") || msg.includes("Overloaded")) {
+      msg = "AI 服务繁忙，请稍后重试。";
+    }
+
+    throw new Error(msg);
   }
 };
