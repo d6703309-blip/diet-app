@@ -76,8 +76,9 @@ function App() {
       setResult(data);
       saveToHistory(data, imageUri, dietMode);
       setStep(2);
-    } catch (error) {
-      alert("识别失败，请重试");
+    } catch (error: any) {
+      // Show specific error message
+      alert(`错误: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -188,7 +189,7 @@ function App() {
              { label: '碳水', val: result.macros.carbs, unit: 'g', color: 'bg-green-50 text-green-700' },
              { label: '脂肪', val: result.macros.fat, unit: 'g', color: 'bg-yellow-50 text-yellow-700' },
              { label: '膳食纤维', val: result.macros.fiber, unit: 'g', color: 'bg-purple-50 text-purple-700' },
-           ].map((item, i) => (
+           ].map((item: { label: string; val: number; unit: string; color: string }, i) => (
              <div key={i} className={`flex flex-col items-center justify-center p-2 rounded-lg ${item.color}`}>
                 <span className="text-lg font-bold">{item.val}</span>
                 <span className="text-[10px] opacity-80">{item.label}</span>
@@ -240,7 +241,7 @@ function App() {
                 { name: '维生素 C', val: result.macros.vitaminC_pct },
                 { name: '钙', val: result.macros.calcium_pct },
                 { name: '铁', val: result.macros.iron_pct },
-              ].map((m, idx) => (
+              ].map((m: { name: string; val: number }, idx) => (
                 <div key={idx} className="flex items-center gap-3">
                   <span className="text-xs text-gray-500 w-16">{m.name}</span>
                   <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
