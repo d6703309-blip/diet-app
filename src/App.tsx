@@ -24,6 +24,8 @@ function App() {
         setHistory(JSON.parse(saved));
       } catch (e) {
         console.error("Failed to parse history", e);
+        // If data is corrupted, clear it
+        localStorage.removeItem('foodHistory');
       }
     }
   }, []);
@@ -36,9 +38,31 @@ function App() {
       result: res,
       mode: mode,
     };
-    const newHistory = [newItem, ...history];
-    setHistory(newHistory);
-    localStorage.setItem('foodHistory', JSON.stringify(newHistory));
+
+    // Strategy to handle storage quota:
+    // 1. Try adding to list (limit to max 3 items to save space)
+    // 2. If fails, try clearing old history and saving only the new one
+    // 3. If still fails (image too huge), do not save history, but don't crash
+    
+    try {
+      // Limit history to latest 3 items to avoid quota issues
+      const newHistory = [newItem, ...history].slice(0, 3);
+      localStorage.setItem('foodHistory', JSON.stringify(newHistory));
+      setHistory(newHistory);
+    } catch (e) {
+      console.warn("Storage quota exceeded, attempting cleanup...");
+      try {
+        // Retry with ONLY the current item (delete all old history)
+        const minimalHistory = [newItem];
+        localStorage.setItem('foodHistory', JSON.stringify(minimalHistory));
+        setHistory(minimalHistory);
+      } catch (innerError) {
+        console.error("Image too large to save in local history.", innerError);
+        // Graceful failure: We show the result to the user, but we don't save it to history.
+        // Alert user nicely (optional, maybe not needed to avoid annoyance)
+        // alert("图片文件过大，本次记录无法保存到历史列表，但不影响查看结果。");
+      }
+    }
   };
 
   const handleDeleteHistory = (id: string, e: React.MouseEvent) => {
@@ -189,7 +213,7 @@ function App() {
              { label: '碳水', val: result.macros.carbs, unit: 'g', color: 'bg-green-50 text-green-700' },
              { label: '脂肪', val: result.macros.fat, unit: 'g', color: 'bg-yellow-50 text-yellow-700' },
              { label: '膳食纤维', val: result.macros.fiber, unit: 'g', color: 'bg-purple-50 text-purple-700' },
-           ].map((item: { label: string; val: number; unit: string; color: string }, i) => (
+           ].map((item, i) => (
              <div key={i} className={`flex flex-col items-center justify-center p-2 rounded-lg ${item.color}`}>
                 <span className="text-lg font-bold">{item.val}</span>
                 <span className="text-[10px] opacity-80">{item.label}</span>
@@ -241,7 +265,7 @@ function App() {
                 { name: '维生素 C', val: result.macros.vitaminC_pct },
                 { name: '钙', val: result.macros.calcium_pct },
                 { name: '铁', val: result.macros.iron_pct },
-              ].map((m: { name: string; val: number }, idx) => (
+              ].map((m, idx) => (
                 <div key={idx} className="flex items-center gap-3">
                   <span className="text-xs text-gray-500 w-16">{m.name}</span>
                   <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
