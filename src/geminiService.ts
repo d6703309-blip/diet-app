@@ -2,6 +2,9 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AnalysisResult, DietMode } from "./types";
 
+// This tells TypeScript to ignore the process variable check
+declare const process: any;
+
 const genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const analysisSchema: Schema = {
